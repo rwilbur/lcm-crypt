@@ -40,7 +40,7 @@ int main(int ac, const char *av[])
         cout << "LCM URL was set to "
      << vm["lcm_ur;"].as<string>() << ".\n";
     } else {
-        cout << "LCM URL was not set.\n";
+        cout << "Using default LCM URL";
     }
 
  initialize();
