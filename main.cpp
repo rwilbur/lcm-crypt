@@ -11,12 +11,15 @@ using namespace std;
 namespace po = boost::program_options;
 
 
+lcm::LCM *m_lcm;
+std::string lcm_url = "udpm://239.255.76.67:7667?ttl=1";
 
-lcm::LCM m_lcm("udpm://239.255.76.67:7667?ttl=1");
 
 void initialize(){
-
-
+    m_lcm = new lcm::LCM(lcm_url);
+    if(!m_lcm->good()){
+        cerr << "LCM Failed to initialize" << std::endl;
+    }
 
 }
 
@@ -38,8 +41,10 @@ int main(int ac, const char *av[])
     }
     if (vm.count("lcm_url")) {
         cout << "LCM URL was set to "
-     << vm["lcm_ur;"].as<string>() << ".\n";
-    } else {
+     << vm["lcm_url"].as<string>() << ".\n";
+        lcm_url = vm["lcm_url"].as<string>();
+    }
+    else {
         cout << "Using default LCM URL";
     }
 

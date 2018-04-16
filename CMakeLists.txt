@@ -21,7 +21,7 @@ else()
   message(STATUS "LCM ${LCM}")
   message(STATUS ${Boost_LIBRARY_DIRS})
 
-  TARGET_LINK_LIBRARIES( lcm-crypt LINK_PUBLIC ${Boost_LIBRARIES} ${LCM} ${CMAKE_THREAD_LIBS_INIT} -lglib-2.0 -lpthread -lm )
+  TARGET_LINK_LIBRARIES( lcm-crypt LINK_PUBLIC ${Boost_LIBRARIES} ${LCM} ${CMAKE_THREAD_LIBS_INIT} -lglib-2.0 -lpthread -lm -llcm)
   message(STATUS "Linking done")
 
 endif (NOT Boost_FOUND)
