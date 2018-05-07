@@ -1,0 +1,10 @@
+
+package datatypes;
+struct test_t
+{
+    int64_t  timestamp;
+    int32_t  num_ranges;
+    string   name;
+    boolean  enabled;
+}
+
