@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 #include "datatypes/test_t.hpp"
 #include <csignal>
+#include <chrono>
 
 namespace po = boost::program_options;
 
@@ -13,12 +14,44 @@ std::string lcm_url = "udpm://239.255.76.67:7667?ttl=1";
 datatypes::test_t test;
 
 
+/**
+ * Handles the interrupt (CTL + C)
+ * @param signum
+ */
 void sigHandler(int signum);
+
+/**
+ *  Initializes LCM based off of the arguments
+ * @param ac Argument count
+ * @param av Argument vector
+ */
 void initialize(int ac, const char *av[]) __attribute__ ((cold));
 
-int main(int ac, const char *av[]);
+/**
+ * Used for retrieving the command to send via LCM
+ * @return command to send
+ */
+std::string getCommand() {
 
-void send_test();
+    std::string command = "";
+    std::cout << "Enter your command to be sent to all subscribed computers:" << std::endl;
+
+    std::getline(std::cin, command);
+    return command;
+
+}
+
+
+long int getUnixTime() {
+    using namespace std::chrono;
+    system_clock::time_point tp = system_clock::now();
+    system_clock::duration dtn = tp.time_since_epoch();
+
+    return duration_cast<milliseconds>(dtn).count();
+
+}
+
+
 
 int main(int ac, const char *av[])
 {
@@ -28,12 +61,10 @@ int main(int ac, const char *av[])
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
     while(1){
-        test.timestamp = 0;
+        std::string cmd = getCommand();
+        test.timestamp = getUnixTime();
+        test.name = cmd;
         m_lcm->publish("TEST", &test);
-
-        usleep(5);
-
-
 
     }
 #pragma clang diagnostic pop
@@ -44,7 +75,10 @@ int main(int ac, const char *av[])
 
 }
 
-
+/**
+ * Handles the interrupt (CTL + C)
+ * @param signum
+ */
 void sigHandler(int signum){
     std::cout << "Exiting...\n";
 
@@ -53,12 +87,16 @@ void sigHandler(int signum){
     exit(signum);
 }
 
-void initialize( int ac, const char *av[] ){
+/**
+ *  Initializes LCM
+ * @param ac
+ * @param av
+ */
+void initialize(int ac, const char *av[] ){
     po::options_description desc("Allowed options");
     desc.add_options()
             ("help", "produce help message")
-            ("lcm_url", po::value<std::string>(), "set LCM URL")
-            ;
+            ("lcm_url", po::value<std::string>(), "set LCM URL");
 
     po::variables_map vm;
     po::store(po::parse_command_line(ac, av, desc), vm);
@@ -72,9 +110,8 @@ void initialize( int ac, const char *av[] ){
         std::cout << "LCM URL was set to "
                   << vm["lcm_url"].as<std::string>() << ".\n";
         lcm_url = vm["lcm_url"].as<std::string>();
-    }
-    else {
-        std::cout << "Using default LCM URL";
+    } else {
+        std::cout << "Using default LCM URL\n";
     }
 
     m_lcm = new lcm::LCM(lcm_url);
@@ -82,7 +119,6 @@ void initialize( int ac, const char *av[] ){
         std::cerr << "LCM Failed to initialize" << std::endl;
         exit(EXIT_FAILURE);
     }
-
 
 
 }
