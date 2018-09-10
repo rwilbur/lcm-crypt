@@ -1,17 +1,26 @@
 #include <iostream>
 #include <lcm/lcm-cpp.hpp>
 #include <boost/program_options.hpp>
-#include "datatypes/test_t.hpp"
+#include "datatypes/broadcast_command_t.hpp"
 #include <csignal>
 #include <chrono>
+#include "Handler.h"
 
 namespace po = boost::program_options;
 
 
-
 lcm::LCM *m_lcm;
 std::string lcm_url = "udpm://239.255.76.67:7667?ttl=1";
-datatypes::test_t test;
+datatypes::broadcast_command_t broadcastCommand;
+
+
+enum E_runMode {
+    E_Unknown = -1,
+    E_Commander,
+    E_Pilot
+};
+
+E_runMode runMode = E_Unknown;
 
 
 /**
@@ -52,25 +61,33 @@ long int getUnixTime() {
 }
 
 
-
-int main(int ac, const char *av[])
-{
+int main(int ac, const char *av[]) {
     initialize(ac, av);
     signal(SIGINT, sigHandler);
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
-    while(1){
-        std::string cmd = getCommand();
-        test.timestamp = getUnixTime();
-        test.name = cmd;
-        m_lcm->publish("TEST", &test);
 
+    Handler handlerObject;
+    m_lcm->subscribe("PILOT", &Handler::handleMessage, &handlerObject);
+
+    if (runMode == E_Commander) {
+
+        while (1) {
+            std::string cmd = getCommand();
+            broadcastCommand.timestamp = getUnixTime();
+            broadcastCommand.data = cmd;
+            char machineID[129];
+            snprintf(machineID, 128, "%s:%s", getenv("HOSTNAME"), getenv("USER"));
+            broadcastCommand.id = machineID;
+            m_lcm->publish("COMMANDER", &broadcastCommand);
+        }
+    } else {
+        while (1) {
+            m_lcm->handle();
+        }
     }
 #pragma clang diagnostic pop
-
-
-
 
 
 }
@@ -79,7 +96,7 @@ int main(int ac, const char *av[])
  * Handles the interrupt (CTL + C)
  * @param signum
  */
-void sigHandler(int signum){
+void sigHandler(int signum) {
     std::cout << "Exiting...\n";
 
     delete m_lcm;
@@ -92,11 +109,12 @@ void sigHandler(int signum){
  * @param ac
  * @param av
  */
-void initialize(int ac, const char *av[] ){
+void initialize(int ac, const char *av[]) {
     po::options_description desc("Allowed options");
     desc.add_options()
             ("help", "produce help message")
-            ("lcm_url", po::value<std::string>(), "set LCM URL");
+            ("lcm_url", po::value<std::string>(), "set LCM URL")
+            ("mode", po::value<std::string>(), "run mode, commander (0) publishes the messages, pilot (1) listens");
 
     po::variables_map vm;
     po::store(po::parse_command_line(ac, av, desc), vm);
@@ -114,8 +132,28 @@ void initialize(int ac, const char *av[] ){
         std::cout << "Using default LCM URL\n";
     }
 
+    if (vm.count("mode")) {
+        std::cout << "Mode set to "
+                  << vm["mode"].as<std::string>() << ".\n";
+
+
+        if (vm["mode"].as<std::string>() == "0") {
+            runMode = E_Commander;
+        } else if (vm["mode"].as<std::string>() == "1") {
+            runMode = E_Pilot;
+        } else {
+            std::cout << "Invalid mode! Aborting...\n";
+            exit(EXIT_FAILURE);
+
+        }
+
+    } else {
+        std::cout << "Mode not set! Aborting...\n";
+        exit(EXIT_FAILURE);
+    }
+
     m_lcm = new lcm::LCM(lcm_url);
-    if(!m_lcm->good()){
+    if (!m_lcm->good()) {
         std::cerr << "LCM Failed to initialize" << std::endl;
         exit(EXIT_FAILURE);
     }

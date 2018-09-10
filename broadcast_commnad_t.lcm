@@ -1,0 +1,10 @@
+
+package datatypes;
+struct broadcast_command_t
+{
+    int64_t  timestamp;
+    string   data;
+    string   id;
+
+}
+

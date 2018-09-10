@@ -17,7 +17,7 @@ else()
   message(STATUS " Library  - ${Boost_LIBRARY_DIRS}")
 
 
-  add_executable(${PROJECT_NAME}  datatypes/test_t.hpp main.cpp)
+  add_executable(${PROJECT_NAME} datatypes/test_t.hpp main.cpp Handler.h)
   message(STATUS "LCM ${LCM}")
   message(STATUS ${Boost_LIBRARY_DIRS})
   target_include_directories(lcm-crypt PRIVATE datatypes ${Boost_INCLUDE_DIRS})
